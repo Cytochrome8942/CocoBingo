@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 import numpy as np
+import os
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 class BingoGame:
     def __init__(self):
@@ -124,23 +126,28 @@ class BingoGame:
             score += 1
         return score
 
-game = BingoGame()
+def get_game():
+    if 'game' not in session:
+        session['game'] = BingoGame()
+    return session['game']
 
 @app.route('/')
 def index():
+    game = get_game()
     return render_template('index.html', game=game)
 
 @app.route('/select/<int:i>/<int:j>', methods=['POST'])
 def select(i, j):
+    game = get_game()
     if game.game_over:
         return jsonify({"status": "game_over", "score": None})
     score = game.select_square(i, j)
+    session['game'] = game
     return jsonify({"status": "game_over" if game.game_over else "continue", "score": score})
 
 @app.route('/restart', methods=['POST'])
 def restart():
-    global game
-    game = BingoGame()
+    session.pop('game', None)
     return jsonify({"status": "restarted"})
 
 if __name__ == '__main__':
