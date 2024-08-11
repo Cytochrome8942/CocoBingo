@@ -126,10 +126,27 @@ class BingoGame:
             score += 1
         return score
 
+    def to_dict(self):
+        return {
+            'selected': self.selected.tolist(),
+            'selections': self.selections,
+            'remaining_turns': self.remaining_turns,
+            'game_over': self.game_over
+        }
+
+    @staticmethod
+    def from_dict(data):
+        game = BingoGame()
+        game.selected = np.array(data['selected'])
+        game.selections = data['selections']
+        game.remaining_turns = data['remaining_turns']
+        game.game_over = data['game_over']
+        return game
+
 def get_game():
     if 'game' not in session:
-        session['game'] = BingoGame()
-    return session['game']
+        session['game'] = BingoGame().to_dict()
+    return BingoGame.from_dict(session['game'])
 
 @app.route('/')
 def index():
@@ -142,7 +159,7 @@ def select(i, j):
     if game.game_over:
         return jsonify({"status": "game_over", "score": None})
     score = game.select_square(i, j)
-    session['game'] = game
+    session['game'] = game.to_dict()
     return jsonify({"status": "game_over" if game.game_over else "continue", "score": score})
 
 @app.route('/restart', methods=['POST'])
